@@ -4,9 +4,9 @@ namespace PaperKiller.Model
 {
     public class ScannedText
     {
-        public string RawResponse { get; set; }
+        public dynamic ApiResponse { get; set; }
 
-        public dynamic DynamicResponse { get; set; }
+        public string FileName { get; set; }
 
         public string Error { get; set; }
     }

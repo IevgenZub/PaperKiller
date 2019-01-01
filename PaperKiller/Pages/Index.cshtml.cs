@@ -7,6 +7,7 @@ using System.Web;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -16,7 +17,8 @@ namespace PaperKiller.Pages
 {
     public class IndexModel : PageModel
     {
-        private readonly IHostingEnvironment _env;
+        private readonly IHostingEnvironment _environment;
+        private readonly IConfiguration _configuration;
 
         [BindProperty(SupportsGet = true)]
         public Paper Paper { get; set; }
@@ -24,12 +26,13 @@ namespace PaperKiller.Pages
         [BindProperty(SupportsGet = true)]
         public ScannedText Text { get; set; }
 
-        public IndexModel(IHostingEnvironment env)
+        public IndexModel(IHostingEnvironment environment, IConfiguration configuration)
         {
-            _env = env;
+            _environment = environment;
+            _configuration = configuration;
         }
 
-        public void OnGet()
+        public async Task OnGetAsync()
         {
             if (Request.Query.TryGetValue("url", out StringValues urls))
             {
@@ -43,12 +46,9 @@ namespace PaperKiller.Pages
             
             if (Request.Query.TryGetValue("name", out StringValues names))
             {
-                var fileName = names[0];
-                var webRoot = _env.WebRootPath;;
-                var path = $"{webRoot}\\data\\{fileName}.json";
+                var rawResponse = await LoadScannedText(names[0]);
 
-                Text.RawResponse = System.IO.File.ReadAllText(path);
-                Text.DynamicResponse = JObject.Parse(Text.RawResponse);
+                Text.ApiResponse = JObject.Parse(rawResponse);
             }
         }
 
@@ -60,22 +60,23 @@ namespace PaperKiller.Pages
             }
 
             var client = new HttpClient();
+
+            var apiKey = _configuration.GetSection("CognitiveService").GetValue<string>("ApiKey");
+            var serviceUri = _configuration.GetSection("CognitiveService").GetValue<string>("Uri");
+
+            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apiKey);
+            
             var queryString = HttpUtility.ParseQueryString(string.Empty);
-
-            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", "6205aee7a61d42ddb95452750164c688");
-
             queryString["language"] = "unk";
             queryString["detectOrientation "] = "true";
-            var uri = "https://westeurope.api.cognitive.microsoft.com/vision/v1.0/ocr?" + queryString;
+
+            var byteData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Paper));
 
             HttpResponseMessage response;
-
-            byte[] byteData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Paper));
-
             using (var content = new ByteArrayContent(byteData))
             {
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                response = await client.PostAsync(uri, content);
+                response = await client.PostAsync($"{serviceUri}?{queryString}", content);
             }
             
             if (response.IsSuccessStatusCode)
@@ -87,9 +88,17 @@ namespace PaperKiller.Pages
             return RedirectToPage("/Index",  new { error = $"Error. Check if file exists on specified url: {Paper.Url}" });
         }
 
+        private async Task<string> LoadScannedText(string fileName)
+        {
+            var webRoot = _environment.WebRootPath; ;
+            var path = $"{webRoot}\\data\\{fileName}.json";
+
+            return await System.IO.File.ReadAllTextAsync(path);
+        }
+
         private async Task<string> SaveScannedText(HttpResponseMessage response)
         {
-            var webRoot = _env.WebRootPath;
+            var webRoot = _environment.WebRootPath;
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var name = Guid.NewGuid().ToString();
             var path = $"{webRoot}/data/{name}.json";
