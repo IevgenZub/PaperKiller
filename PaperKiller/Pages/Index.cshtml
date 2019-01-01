@@ -23,13 +23,17 @@
     {
         <h3>Result</h3>
         <div class="row">
-            <div class="col">
+            <div class="col-3">
+                <img style="width:200px;height:200px;" src="@Model.Paper.Url" alt="Paper">
+            </div>
+            <div class="col-9">
                 <div class="card m-1 p-1">
                     <div class="card-title">
                         <button class="btn btn-secondary btn-sm">
                             <svg class="icon" version="1.1" width="24" height="24" viewBox="0 0 24 24"><path d="M17,9H7V7H17M17,13H7V11H17M14,17H7V15H14M12,3A1,1 0 0,1 13,4A1,1 0 0,1 12,5A1,1 0 0,1 11,4A1,1 0 0,1 12,3M19,3H14.82C14.4,1.84 13.3,1 12,1C10.7,1 9.6,1.84 9.18,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3Z" /></svg>
                         </button>
                     </div>
+                    
                     <div class="card-text text-left ">
                         <samp>
                             @foreach (var line in Model.Text.DynamicResponse.regions[0].lines)
@@ -45,7 +49,5 @@
                 </div>
             </div>
         </div>
-       
     }
-
 </div>
