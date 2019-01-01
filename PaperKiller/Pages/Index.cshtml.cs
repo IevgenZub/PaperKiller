@@ -18,7 +18,7 @@ namespace PaperKiller.Pages
     {
         private readonly IHostingEnvironment _env;
 
-        [BindProperty]
+        [BindProperty(SupportsGet = true)]
         public Paper Paper { get; set; }
 
         [BindProperty(SupportsGet = true)]
@@ -31,6 +31,11 @@ namespace PaperKiller.Pages
 
         public void OnGet()
         {
+            if (Request.Query.TryGetValue("url", out StringValues urls))
+            {
+                Paper.Url = urls[0];
+            }
+
             if (Request.Query.TryGetValue("error", out StringValues errors))
             {
                 Text.Error = errors[0];
@@ -57,17 +62,14 @@ namespace PaperKiller.Pages
             var client = new HttpClient();
             var queryString = HttpUtility.ParseQueryString(string.Empty);
 
-            // Request headers
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", "6205aee7a61d42ddb95452750164c688");
 
-            // Request parameters
             queryString["language"] = "unk";
             queryString["detectOrientation "] = "true";
             var uri = "https://westeurope.api.cognitive.microsoft.com/vision/v1.0/ocr?" + queryString;
 
             HttpResponseMessage response;
 
-            // Request body
             byte[] byteData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Paper));
 
             using (var content = new ByteArrayContent(byteData))
@@ -75,19 +77,17 @@ namespace PaperKiller.Pages
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 response = await client.PostAsync(uri, content);
             }
-
+            
             if (response.IsSuccessStatusCode)
             {
-                var paperName = await SaveResponse(response);
-
-                return RedirectToPage("/Index", new { name = paperName });
+                var paperName = await SaveScannedText(response);
+                return RedirectToPage("/Index", new { name = paperName, url = Paper.Url });
             }
 
-            return RedirectToPage("/Index", 
-                new { error = $"Something went wrong. Check if file exists on specified url: {Paper.Url}" });
+            return RedirectToPage("/Index",  new { error = $"Error. Check if file exists on specified url: {Paper.Url}" });
         }
 
-        private async Task<string> SaveResponse(HttpResponseMessage response)
+        private async Task<string> SaveScannedText(HttpResponseMessage response)
         {
             var webRoot = _env.WebRootPath;
             var jsonResponse = await response.Content.ReadAsStringAsync();
