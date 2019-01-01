@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.168
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaperKiller", "PaperKiller\PaperKiller.csproj", "{14FB10A5-B925-483F-907C-B13491529872}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{14FB10A5-B925-483F-907C-B13491529872}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14FB10A5-B925-483F-907C-B13491529872}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14FB10A5-B925-483F-907C-B13491529872}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14FB10A5-B925-483F-907C-B13491529872}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {407CCF88-09F1-4C8F-B506-6EE1D51D2798}
+	EndGlobalSection
+EndGlobal
