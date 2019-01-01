@@ -38,17 +38,17 @@ namespace PaperKiller.Pages
             {
                 Paper.Url = urls[0];
             }
+            
+            if (Request.Query.TryGetValue("file", out StringValues files))
+            {
+                var rawResponse = await LoadScannedText(files[0]);
+
+                Text.ApiResponse = JObject.Parse(rawResponse);
+            }
 
             if (Request.Query.TryGetValue("error", out StringValues errors))
             {
                 Text.Error = errors[0];
-            }
-            
-            if (Request.Query.TryGetValue("name", out StringValues names))
-            {
-                var rawResponse = await LoadScannedText(names[0]);
-
-                Text.ApiResponse = JObject.Parse(rawResponse);
             }
         }
 
@@ -59,13 +59,26 @@ namespace PaperKiller.Pages
                 return Page();
             }
 
+            var response = await CallCognitiveService();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileName = await SaveScannedText(response);
+                return RedirectToPage("/Index", new { file = fileName, url = Paper.Url });
+            }
+
+            return RedirectToPage("/Index", new { error = $"Error. Check if file exists on specified url: {Paper.Url}" });
+        }
+
+        private async Task<HttpResponseMessage> CallCognitiveService()
+        {
             var client = new HttpClient();
 
             var apiKey = _configuration.GetSection("CognitiveService").GetValue<string>("ApiKey");
             var serviceUri = _configuration.GetSection("CognitiveService").GetValue<string>("Uri");
 
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apiKey);
-            
+
             var queryString = HttpUtility.ParseQueryString(string.Empty);
             queryString["language"] = "unk";
             queryString["detectOrientation "] = "true";
@@ -78,14 +91,8 @@ namespace PaperKiller.Pages
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 response = await client.PostAsync($"{serviceUri}?{queryString}", content);
             }
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var paperName = await SaveScannedText(response);
-                return RedirectToPage("/Index", new { name = paperName, url = Paper.Url });
-            }
 
-            return RedirectToPage("/Index",  new { error = $"Error. Check if file exists on specified url: {Paper.Url}" });
+            return response;
         }
 
         private async Task<string> LoadScannedText(string fileName)
