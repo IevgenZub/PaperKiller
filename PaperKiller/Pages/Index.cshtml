@@ -4,6 +4,7 @@
     ViewData["Title"] = "Home page";
     var words = 0;
     var lines = 0;
+    var regions = 0;
 }
 
 <div class="text-center">
@@ -37,19 +38,24 @@
                         </div>
                         <div class="card-text text-left ">
                             <samp>
-                                @foreach (var line in Model.Text.ApiResponse.regions[0].lines)
+                                @foreach (var region in Model.Text.ApiResponse.regions)
                                 {
-                                    lines++;
-                                    @foreach (var word in line.words)
+                                    regions++;
+                                    @foreach (var line in region.lines)
                                     {
-                                        words++;
-                                        <label>@word.text &nbsp;</label>
+                                        lines++;
+                                        @foreach (var word in line.words)
+                                        {
+                                            words++;
+                                            <label>@word.text &nbsp;</label>
+                                        }
+                                        <br />
                                     }
                                     <br />
                                 }
                             </samp>
                         </div>
-                        <h6 class="card-subtitle mb-2 text-muted">Lines: @lines Words: @words</h6>
+                        <h6 class="card-subtitle mb-2 text-muted">Regions: @regions Lines: @lines Words: @words</h6>
                     </div>
                 </div>
             </div>
