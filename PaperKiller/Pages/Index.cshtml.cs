@@ -1,35 +1,30 @@
 ﻿using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using PaperKiller.Model;
+using PaperKiller.Services;
 
 namespace PaperKiller.Pages
 {
     public class IndexModel : PageModel
     {
         private readonly IHostingEnvironment _environment;
-        private readonly IConfiguration _configuration;
-
+        private readonly ICognitiveService _cognitiveService;
+        
         [BindProperty(SupportsGet = true)]
         public Paper Paper { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public ScannedText Text { get; set; }
 
-        public IndexModel(IHostingEnvironment environment, IConfiguration configuration)
+        public IndexModel(ICognitiveService cognitiveService, IHostingEnvironment environment)
         {
             _environment = environment;
-            _configuration = configuration;
+            _cognitiveService = cognitiveService;
         }
 
         public async Task OnGetAsync()
@@ -59,58 +54,32 @@ namespace PaperKiller.Pages
                 return Page();
             }
 
-            var response = await CallCognitiveService();
+            var response = await _cognitiveService.CallRecognitionApi(Paper.Url);
 
-            if (response.IsSuccessStatusCode)
+            if (response.IsSuccess)
             {
-                var fileName = await SaveScannedText(response);
+                var fileName = await SaveScannedText(response.RawResponse);
                 return RedirectToPage("/Index", new { file = fileName, url = Paper.Url });
             }
 
             return RedirectToPage("/Index", new { error = $"Error. Check if file exists on specified url: {Paper.Url}" });
         }
 
-        private async Task<HttpResponseMessage> CallCognitiveService()
-        {
-            var client = new HttpClient();
-
-            var apiKey = _configuration.GetSection("CognitiveService").GetValue<string>("ApiKey");
-            var serviceUri = _configuration.GetSection("CognitiveService").GetValue<string>("Uri");
-
-            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apiKey);
-
-            var queryString = HttpUtility.ParseQueryString(string.Empty);
-            queryString["language"] = "unk";
-            queryString["detectOrientation "] = "true";
-
-            var byteData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Paper));
-
-            HttpResponseMessage response;
-            using (var content = new ByteArrayContent(byteData))
-            {
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                response = await client.PostAsync($"{serviceUri}?{queryString}", content);
-            }
-
-            return response;
-        }
-
         private async Task<string> LoadScannedText(string fileName)
         {
-            var webRoot = _environment.WebRootPath; ;
+            var webRoot = _environment.WebRootPath;
             var path = $"{webRoot}\\data\\{fileName}.json";
 
             return await System.IO.File.ReadAllTextAsync(path);
         }
 
-        private async Task<string> SaveScannedText(HttpResponseMessage response)
+        private async Task<string> SaveScannedText(string text)
         {
             var webRoot = _environment.WebRootPath;
-            var jsonResponse = await response.Content.ReadAsStringAsync();
             var name = Guid.NewGuid().ToString();
             var path = $"{webRoot}/data/{name}.json";
 
-            System.IO.File.WriteAllText(path, jsonResponse);
+            await System.IO.File.WriteAllTextAsync(path, text);
 
             return name;
         }

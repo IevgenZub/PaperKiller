@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using PaperKiller.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PaperKiller.Services;
 
 namespace PaperKiller
 {
@@ -42,8 +43,12 @@ namespace PaperKiller
                 .AddDefaultUI(UIFramework.Bootstrap4)
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            var apiUri = Configuration.GetSection("CognitiveService").GetValue<string>("Uri");
+            var apiKey = Configuration.GetSection("CognitiveService").GetValue<string>("ApiKey");
+
+            services.AddTransient<ICognitiveService>(c => new CognitiveService(apiUri, apiKey));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
